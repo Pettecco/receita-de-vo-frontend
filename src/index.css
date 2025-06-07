@@ -1,0 +1,17 @@
+body {
+  min-height: 100vh;
+  background: linear-gradient(90deg, #cfe1b9 0%, #cfe1b9 100%);
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.mantine-Notifications-root {
+  position: fixed !important;
+  top: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  bottom: auto !important;
+  z-index: 2077 !important;
+  max-width: 400px;
+}
