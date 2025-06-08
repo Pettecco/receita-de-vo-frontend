@@ -11,9 +11,12 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 import granmotherImg from "../assets/grandmother.png";
+import { login, registerUser } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 export const AuthPage = () => {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const navigate = useNavigate();
 
   const loginForm = useForm({
     initialValues: { username: "", password: "" },
@@ -23,20 +26,65 @@ export const AuthPage = () => {
     initialValues: { username: "", password: "" },
   });
 
-  const handleLogin = () => {
-    notifications.show({
-      title: "Login",
-      message: "Você entrou com sucesso!",
-      color: "green",
-    });
+  const handleLogin = async (values: {
+    username: string;
+    password: string;
+  }) => {
+    try {
+      const response = await login(values);
+
+      localStorage.setItem("token", response.data.access_token);
+      notifications.show({
+        title: "Login",
+        message: "Você entrou com sucesso!",
+        color: "green",
+      });
+      navigate("/home");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error.response && error.response.status === 401) {
+        notifications.show({
+          title: "Erro",
+          message: "Usuário ou senha inválidos.",
+          color: "red",
+        });
+      } else {
+        notifications.show({
+          title: "Erro",
+          message: "Não foi possível fazer login.",
+          color: "red",
+        });
+      }
+    }
   };
 
-  const handleRegister = () => {
-    notifications.show({
-      title: "Cadastro",
-      message: "Conta criada com sucesso!",
-      color: "teal",
-    });
+  const handleRegister = async (values: {
+    username: string;
+    password: string;
+  }) => {
+    try {
+      await registerUser(values);
+      notifications.show({
+        title: "Cadastro",
+        message: "Conta criada com sucesso!",
+        color: "teal",
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error.response && error.response.status === 409) {
+        notifications.show({
+          title: "Erro",
+          message: "Este usuário já existe.",
+          color: "red",
+        });
+      } else {
+        notifications.show({
+          title: "Erro",
+          message: "Não foi possível cadastrar.",
+          color: "red",
+        });
+      }
+    }
   };
 
   return (
