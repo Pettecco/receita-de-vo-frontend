@@ -1,52 +1,71 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import { ActionIcon, Affix, Title, Transition } from "@mantine/core";
 import { RecipeCard } from "../components/RecipeCard";
-import grandmotherImg from "../assets/grandmother.png";
 import { IconArrowUp } from "@tabler/icons-react";
 import { useWindowScroll } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import girlImg from "../assets/girl.png";
+import { RecipeDetails } from "../components/RecipeDetails";
+import { fetchRecipes } from "../services/recipeService";
+import { fetchUserById } from "../services/userService";
+import type { RecipeDTO } from "../interfaces/recipe-dto";
 
-const mockRecipes = [
-  {
-    id: 1,
-    title: "Bolo de Fubá da Vó Maria",
-    author: "vovo_maria",
-    date: "2025-06-08",
-    summary: "Um bolo fofinho e fácil, perfeito para o café da tarde.",
-    votes: 12,
-  },
-  {
-    id: 2,
-    title: "Feijoada Completa",
-    author: "vovo_conceicao",
-    date: "2025-06-07",
-    summary: "A tradicional feijoada brasileira, do jeito que a família gosta.",
-    votes: 8,
-    image: grandmotherImg,
-  },
-  {
-    id: 2,
-    title: "Feijoada Completa",
-    author: "vovo_conceicao",
-    date: "2025-06-07",
-    summary: "A tradicional feijoada brasileira, do jeito que a família gosta.",
-    votes: 8,
-    image: grandmotherImg,
-  },
-  {
-    id: 2,
-    title: "Feijoada Completa",
-    author: "vovo_conceicao",
-    date: "2025-06-07",
-    summary: "A tradicional feijoada brasileira, do jeito que a família gosta.",
-    votes: 8,
-    image: grandmotherImg,
-  },
-];
+type Recipe = {
+  createdAt: Date;
+  id: string;
+  title: string;
+  author: string;
+  date: string;
+  summary: string;
+  votes: number;
+  image?: string;
+  description: string;
+  ingredients: string[];
+  steps: string;
+  likes: number;
+  comments: { author: string; text: string }[];
+};
 
 export const HomePage = () => {
   const [scroll, scrollTo] = useWindowScroll();
   const [show, setShow] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const loadRecipes = async () => {
+      try {
+        const data: RecipeDTO[] = await fetchRecipes();
+        const recipesWithAuthor = await Promise.all(
+          data.map(async (recipe: RecipeDTO) => {
+            let authorName = recipe.authorId;
+            try {
+              const user = await fetchUserById(recipe.authorId);
+              authorName = user.username || recipe.authorId;
+            } catch (e) {
+              console.warn("Erro ao buscar autor:", recipe.authorId, e);
+            }
+            return {
+              ...recipe,
+              id: recipe._id,
+              author: authorName,
+              date: recipe.createdAt,
+              summary: recipe.description,
+              votes: recipe.likes,
+              createdAt: new Date(recipe.createdAt),
+            };
+          })
+        );
+        setRecipes(recipesWithAuthor);
+      } catch (err) {
+        console.error("Erro ao carregar receitas:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadRecipes();
+  }, []);
   useEffect(() => {
     setShow(scroll.y > 200);
   }, [scroll.y]);
@@ -70,17 +89,34 @@ export const HomePage = () => {
           paddingBottom: "40px",
         }}
       >
-        <span role="img" aria-label="panelinha">
-          🍪
-        </span>
         Receitas da Comunidade
         <span role="img" aria-label="panelinha">
-          🍪
+          <img
+            src={girlImg}
+            alt="menina com comida"
+            width="70px"
+            height="68px"
+          />
         </span>
       </Title>
-      {mockRecipes.map((recipe) => (
-        <RecipeCard key={recipe.id} {...recipe} />
-      ))}
+      {loading ? (
+        <p>Carregando receitas...</p>
+      ) : (
+        recipes.map((recipe) => (
+          <RecipeCard
+            key={recipe.id}
+            {...recipe}
+            onDetails={() => setSelectedRecipe(recipe)}
+          />
+        ))
+      )}
+      {selectedRecipe && (
+        <RecipeDetails
+          opened={!!selectedRecipe}
+          onClose={() => setSelectedRecipe(null)}
+          recipe={selectedRecipe}
+        />
+      )}
       <Affix position={{ bottom: 32, right: 32 }}>
         <Transition transition="slide-up" mounted={show}>
           {(transitionStyles) => (

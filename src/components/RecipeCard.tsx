@@ -3,6 +3,7 @@ import like from "../assets/heart.png";
 import { useState } from "react";
 
 interface RecipeCardProps {
+  onDetails: () => void;
   title: string;
   author: string;
   date: string;
@@ -12,6 +13,7 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard = ({
+  onDetails,
   title,
   author,
   date,
@@ -21,7 +23,6 @@ export const RecipeCard = ({
 }: RecipeCardProps) => {
   const [likes, setLikes] = useState(votes);
 
-  // Define minHeight condicionalmente
   const cardMinHeight = image ? 320 : 180;
 
   return (
@@ -55,7 +56,7 @@ export const RecipeCard = ({
         >
           {title}
         </Text>
-        <Text size="xs" color="#7a6c5d" style={{ fontWeight: 600 }}>
+        <Text size="xs" style={{ fontWeight: 600, color: "#7a6c5d" }}>
           por {author} • {new Date(date).toLocaleDateString()}
         </Text>
       </Group>
@@ -102,6 +103,7 @@ export const RecipeCard = ({
           }}
           onMouseOver={(e) => (e.currentTarget.style.background = "#e5f3d6")}
           onMouseOut={(e) => (e.currentTarget.style.background = "#cfe1b9")}
+          onClick={onDetails}
         >
           Ver detalhes
         </Button>
