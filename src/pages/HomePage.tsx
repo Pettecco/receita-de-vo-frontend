@@ -10,6 +10,14 @@ import { fetchRecipes } from "../services/recipeService";
 import { fetchUserById } from "../services/userService";
 import type { RecipeDTO } from "../interfaces/recipe-dto";
 
+type Comment = {
+  user: string;
+  text: string;
+  createdAt?: string;
+  _id?: string;
+  author?: string;
+};
+
 type Recipe = {
   createdAt: Date;
   id: string;
@@ -23,7 +31,7 @@ type Recipe = {
   ingredients: string[];
   steps: string;
   likes: number;
-  comments: { author: string; text: string }[];
+  comments: Comment[];
 };
 
 export const HomePage = () => {
@@ -33,39 +41,54 @@ export const HomePage = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadRecipes = async () => {
-      try {
-        const data: RecipeDTO[] = await fetchRecipes();
-        const recipesWithAuthor = await Promise.all(
-          data.map(async (recipe: RecipeDTO) => {
-            let authorName = recipe.authorId;
-            try {
-              const user = await fetchUserById(recipe.authorId);
-              authorName = user.username || recipe.authorId;
-            } catch (e) {
-              console.warn("Erro ao buscar autor:", recipe.authorId, e);
+  // Função de refresh para atualizar as receitas
+  const refreshRecipes = async () => {
+    setLoading(true);
+    try {
+      const data: RecipeDTO[] = await fetchRecipes();
+      const recipesWithAuthor = await Promise.all(
+        data.map(async (recipe: RecipeDTO) => {
+          let authorName = recipe.authorId;
+          try {
+            const user = await fetchUserById(recipe.authorId);
+            authorName = user.username || recipe.authorId;
+
+            if (user && user._id) {
+              localStorage.setItem("userId", user.id);
             }
-            return {
-              ...recipe,
-              id: recipe._id,
-              author: authorName,
-              date: recipe.createdAt,
-              summary: recipe.description,
-              votes: recipe.likes,
-              createdAt: new Date(recipe.createdAt),
-            };
-          })
-        );
-        setRecipes(recipesWithAuthor);
-      } catch (err) {
-        console.error("Erro ao carregar receitas:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadRecipes();
+          } catch (e) {
+            console.warn("Erro ao buscar autor:", recipe.authorId, e);
+          }
+          return {
+            ...recipe,
+            id: recipe._id,
+            author: authorName,
+            date: recipe.createdAt,
+            summary: recipe.description,
+            votes: recipe.likes,
+            createdAt: new Date(recipe.createdAt),
+            comments: (recipe.comments || []).map((comment: any) => ({
+              user: comment.user || comment.author || "Desconhecido",
+              text: comment.text,
+              createdAt: comment.createdAt,
+              _id: comment._id,
+              author: comment.user || comment.author || "Desconhecido",
+            })),
+          };
+        })
+      );
+      setRecipes(recipesWithAuthor);
+    } catch (err) {
+      console.error("Erro ao carregar receitas:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshRecipes();
   }, []);
+
   useEffect(() => {
     setShow(scroll.y > 200);
   }, [scroll.y]);
@@ -115,6 +138,7 @@ export const HomePage = () => {
           opened={!!selectedRecipe}
           onClose={() => setSelectedRecipe(null)}
           recipe={selectedRecipe}
+          onRefresh={refreshRecipes}
         />
       )}
       <Affix position={{ bottom: 32, right: 32 }}>

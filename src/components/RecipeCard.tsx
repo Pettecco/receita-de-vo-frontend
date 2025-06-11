@@ -1,8 +1,10 @@
 import { Card, Button, Text, Group, Divider } from "@mantine/core";
 import like from "../assets/heart.png";
 import { useState } from "react";
+import { likeRecipe, unlikeRecipe } from "../services/likeService";
 
 interface RecipeCardProps {
+  id: string;
   onDetails: () => void;
   title: string;
   author: string;
@@ -13,6 +15,7 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard = ({
+  id,
   onDetails,
   title,
   author,
@@ -21,7 +24,19 @@ export const RecipeCard = ({
   votes = 0,
   image,
 }: RecipeCardProps) => {
-  const [likes, setLikes] = useState(votes);
+  const [likes, setLikes] = useState<number>(votes);
+  const [liked, setLiked] = useState<boolean>(false);
+
+  const handleLike = async () => {
+    setLiked((prev) => !prev);
+    setLikes((prev) => (liked ? Math.max(prev - 1, 0) : prev + 1));
+
+    if (!liked) {
+      await likeRecipe(id);
+    } else {
+      await unlikeRecipe(id);
+    }
+  };
 
   const cardMinHeight = image ? 320 : 180;
 
@@ -109,15 +124,15 @@ export const RecipeCard = ({
         </Button>
         <Group gap={4}>
           <Button
-            variant="subtle"
+            variant={liked ? "filled" : "subtle"}
             size="xs"
             style={{
-              background: "#fff6e0",
+              background: liked ? "#ffe0e0" : "#fff6e0",
               borderRadius: "50%",
               padding: 6,
               boxShadow: "0 1px 4px rgba(255, 179, 71, 0.08)",
             }}
-            onClick={() => setLikes((prev) => prev + 1)}
+            onClick={handleLike}
           >
             <img
               src={like}

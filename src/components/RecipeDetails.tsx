@@ -3,19 +3,29 @@ import {
   Text,
   Group,
   Divider,
-  Button,
   Image,
   Title,
   List,
   ScrollArea,
 } from "@mantine/core";
-import { useState } from "react";
-import like from "../assets/heart.png";
+import { useEffect, useState } from "react";
+import { postComment } from "../services/recipeService";
+import { fetchUserById } from "../services/userService";
+
+interface Comment {
+  user: string;
+  text: string;
+  createdAt?: string;
+  _id?: string;
+  author?: string;
+}
 
 interface RecipeDetailsProps {
   opened: boolean;
   onClose: () => void;
+  onRefresh: () => void;
   recipe: {
+    id: string;
     title: string;
     author: string;
     image?: string;
@@ -23,16 +33,67 @@ interface RecipeDetailsProps {
     ingredients: string[];
     steps: string;
     likes: number;
-    comments: { author: string; text: string }[];
+    comments: Comment[];
   };
+}
+
+async function mapCommentsWithAuthor(comments: Comment[]) {
+  return Promise.all(
+    comments.map(async (comment) => {
+      let authorName = comment.user;
+      try {
+        const user = await fetchUserById(comment.user);
+        authorName = user.username || comment.user;
+      } catch {
+        // fallback para o id se não achar o nome
+      }
+      return {
+        ...comment,
+        author: authorName,
+      };
+    })
+  );
 }
 
 export const RecipeDetails = ({
   opened,
   onClose,
+  onRefresh,
   recipe,
 }: RecipeDetailsProps) => {
-  const [likes, setLikes] = useState(recipe.likes);
+  const [comment, setComment] = useState("");
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (opened) {
+      mapCommentsWithAuthor(recipe.comments).then(setComments);
+    }
+  }, [opened, recipe.comments]);
+
+  const handleComment = async () => {
+    if (!comment.trim()) return;
+    setLoading(true);
+    try {
+      await postComment(recipe.id, comment);
+
+      const authorName = localStorage.getItem("username") || "Você";
+
+      setComments([
+        ...comments,
+        {
+          user: authorName,
+          text: comment,
+          createdAt: new Date().toISOString(),
+          author: authorName,
+        },
+      ]);
+      setComment("");
+      if (onRefresh) onRefresh();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Modal
@@ -88,38 +149,67 @@ export const RecipeDetails = ({
         <Text size="sm" style={{ color: "#5d4037", marginBottom: 16 }}>
           {recipe.steps}
         </Text>
-        <Group gap={8} mb={16}>
-          <Button
-            variant="subtle"
-            size="xs"
-            style={{
-              background: "#fff6e0",
-              borderRadius: "50%",
-              padding: 6,
-              boxShadow: "0 1px 4px rgba(255, 179, 71, 0.08)",
-            }}
-            onClick={() => setLikes((prev) => prev + 1)}
-          >
-            <img src={like} alt="like" style={{ width: 18, height: 18 }} />
-          </Button>
-          <Text size="sm" style={{ fontWeight: 700, color: "#d2691e" }}>
-            {likes}
-          </Text>
-        </Group>
         <Divider my={8} label="Comentários" labelPosition="center" />
-        {recipe.comments.length === 0 ? (
-          <Text size="xs" color="dimmed">
+        <div
+          style={{
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Escreva um comentário..."
+            style={{
+              width: "60%",
+              height: "30px",
+              marginLeft: "5px",
+              padding: 8,
+              borderRadius: 8,
+              border: "1px solid #e0cfcf",
+              marginRight: 8,
+            }}
+            disabled={loading}
+          />
+          <button
+            onClick={handleComment}
+            disabled={loading || !comment.trim()}
+            style={{
+              height: "30px",
+              width: "110px",
+              borderRadius: 8,
+              background: "#cfe1b9",
+              color: "#3e2723",
+              border: "none",
+              fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
+            Comentar
+          </button>
+        </div>
+
+        {comments.length === 0 ? (
+          <Text size="xs" style={{ color: "dimmed" }}>
             Nenhum comentário ainda.
           </Text>
         ) : (
-          recipe.comments.map((comment, idx) => (
-            <div key={idx} style={{ marginBottom: 8 }}>
-              <Text size="xs" color="#7a6c5d" fw={700}>
-                {comment.author}
-              </Text>
-              <Text size="sm">{comment.text}</Text>
-            </div>
-          ))
+          [...comments]
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt || "").getTime() -
+                new Date(a.createdAt || "").getTime()
+            )
+            .map((comment, idx) => (
+              <div key={idx} style={{ marginBottom: 8 }}>
+                <Text size="xs" fw={700}>
+                  {comment.author}
+                </Text>
+                <Text size="sm">{comment.text}</Text>
+              </div>
+            ))
         )}
       </ScrollArea>
     </Modal>

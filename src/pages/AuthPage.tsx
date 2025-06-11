@@ -34,6 +34,8 @@ export const AuthPage = () => {
       const response = await login(values);
 
       localStorage.setItem("token", response.data.access_token);
+      localStorage.setItem("userId", response.data.userId);
+      localStorage.setItem("username", response.data.username);
       notifications.show({
         title: "Login",
         message: "Você entrou com sucesso!",
