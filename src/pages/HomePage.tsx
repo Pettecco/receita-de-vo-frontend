@@ -1,14 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { ActionIcon, Affix, Title, Transition } from "@mantine/core";
+import {
+  ActionIcon,
+  Affix,
+  Avatar,
+  Button,
+  Group,
+  Modal,
+  Title,
+  Transition,
+} from "@mantine/core";
 import { RecipeCard } from "../components/RecipeCard";
 import { IconArrowUp } from "@tabler/icons-react";
 import { useWindowScroll } from "@mantine/hooks";
 import girlImg from "../assets/girl.png";
 import { RecipeDetails } from "../components/RecipeDetails";
 import { fetchRecipes } from "../services/recipeService";
-import { fetchUserById } from "../services/userService";
+import {
+  fetchUserById,
+  getProfilePic,
+  updateUserAvatar,
+} from "../services/userService";
 import type { RecipeDTO } from "../interfaces/recipe-dto";
+import { AddRecipeForm } from "../components/AddRecipe";
 
 type Comment = {
   user: string;
@@ -31,8 +45,18 @@ type Recipe = {
   ingredients: string[];
   steps: string;
   likes: number;
+  views: number;
   comments: Comment[];
 };
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+}
 
 export const HomePage = () => {
   const [scroll, scrollTo] = useWindowScroll();
@@ -40,8 +64,33 @@ export const HomePage = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddRecipe, setShowAddRecipe] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(
+    localStorage.getItem("profileImage") || null
+  );
 
-  // Função de refresh para atualizar as receitas
+  const username = localStorage.getItem("username") || "Usuário";
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        const username = localStorage.getItem("username") || "Usuário";
+        const img = await getProfilePic(username);
+        setProfileImage(img);
+      } catch {
+        setProfileImage(null);
+      }
+    };
+    fetchProfileImage();
+  }, []);
+
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+
   const refreshRecipes = async () => {
     setLoading(true);
     try {
@@ -74,6 +123,10 @@ export const HomePage = () => {
               _id: comment._id,
               author: comment.user || comment.author || "Desconhecido",
             })),
+            likes: recipe.likes ?? 0,
+            views: recipe.views ?? 0,
+            ingredients: recipe.ingredients ?? [],
+            steps: recipe.steps ?? "",
           };
         })
       );
@@ -95,6 +148,92 @@ export const HomePage = () => {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 24,
+        }}
+      >
+        <Button
+          onClick={() => setShowAddRecipe(true)}
+          style={{
+            background: "#cfe1b9",
+            color: "#3e2723",
+            fontWeight: 700,
+            borderRadius: 8,
+            padding: "10px 24px",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 18,
+          }}
+        >
+          + Adicionar Receita
+        </Button>
+        <Modal
+          opened={showAddRecipe}
+          onClose={() => setShowAddRecipe(false)}
+          title="Adicionar nova receita"
+          centered
+          size="lg"
+          style={{ background: "#f8f8f8" }}
+        >
+          <AddRecipeForm
+            onSuccess={() => {
+              setShowAddRecipe(false);
+              refreshRecipes();
+            }}
+          />
+        </Modal>
+        <Group gap={8}>
+          <span style={{ fontWeight: 600, color: "#3e2723", fontSize: 16 }}>
+            {username}
+          </span>
+          <button
+            type="button"
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              margin: 0,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+            }}
+            onClick={() => document.getElementById("profile-upload")?.click()}
+            aria-label="Alterar foto de perfil"
+          >
+            <Avatar
+              color="olive"
+              radius="xl"
+              size={40}
+              src={profileImage || undefined}
+            >
+              {!profileImage && getInitials(username)}
+            </Avatar>
+          </button>
+          <input
+            id="profile-upload"
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const base64 = await fileToBase64(file);
+                setProfileImage(base64);
+                localStorage.setItem("profileImage", base64);
+
+                const userId = localStorage.getItem("userId");
+                if (userId) {
+                  await updateUserAvatar(userId, base64, file.type);
+                }
+              }
+            }}
+          />
+        </Group>
+      </div>
       <Title
         order={2}
         mb="lg"
@@ -130,6 +269,7 @@ export const HomePage = () => {
             key={recipe.id}
             {...recipe}
             onDetails={() => setSelectedRecipe(recipe)}
+            onDelete={refreshRecipes}
           />
         ))
       )}

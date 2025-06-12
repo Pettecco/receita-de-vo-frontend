@@ -7,10 +7,11 @@ import {
   Title,
   List,
   ScrollArea,
+  Avatar,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { postComment } from "../services/recipeService";
-import { fetchUserById } from "../services/userService";
+import { fetchUserById, getProfilePic } from "../services/userService";
 
 interface Comment {
   user: string;
@@ -18,6 +19,7 @@ interface Comment {
   createdAt?: string;
   _id?: string;
   author?: string;
+  avatar?: string | null;
 }
 
 interface RecipeDetailsProps {
@@ -41,20 +43,23 @@ async function mapCommentsWithAuthor(comments: Comment[]) {
   return Promise.all(
     comments.map(async (comment) => {
       let authorName = comment.user;
+      let avatar: string | null = null;
       try {
         const user = await fetchUserById(comment.user);
         authorName = user.username || comment.user;
-      } catch {
-        // fallback para o id se não achar o nome
+        const profilePic = await getProfilePic(authorName);
+        avatar = profilePic || null;
+      } catch (error) {
+        console.error(error);
       }
       return {
         ...comment,
         author: authorName,
+        avatar,
       };
     })
   );
 }
-
 export const RecipeDetails = ({
   opened,
   onClose,
@@ -78,6 +83,12 @@ export const RecipeDetails = ({
       await postComment(recipe.id, comment);
 
       const authorName = localStorage.getItem("username") || "Você";
+      let avatar: string | null = null;
+      try {
+        avatar = await getProfilePic(authorName);
+      } catch {
+        avatar = null;
+      }
 
       setComments([
         ...comments,
@@ -86,6 +97,7 @@ export const RecipeDetails = ({
           text: comment,
           createdAt: new Date().toISOString(),
           author: authorName,
+          avatar,
         },
       ]);
       setComment("");
@@ -203,11 +215,36 @@ export const RecipeDetails = ({
                 new Date(a.createdAt || "").getTime()
             )
             .map((comment, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <Text size="xs" fw={700}>
-                  {comment.author}
-                </Text>
-                <Text size="sm">{comment.text}</Text>
+              <div
+                key={idx}
+                style={{
+                  marginBottom: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Avatar
+                  size={28}
+                  radius="xl"
+                  src={comment.avatar || undefined}
+                  color="olive"
+                  style={{ flexShrink: 0 }}
+                >
+                  {!comment.avatar && comment.author
+                    ? comment.author
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                    : null}
+                </Avatar>
+                <div>
+                  <Text size="xs" fw={700}>
+                    {comment.author}
+                  </Text>
+                  <Text size="sm">{comment.text}</Text>
+                </div>
               </div>
             ))
         )}

@@ -9,4 +9,5 @@ export interface RecipeDTO {
   comments: { author: string; text: string }[];
   createdAt: string;
   image?: string;
+  views: number;
 }
