@@ -1,6 +1,6 @@
 # Receita de Vó
 
-Um app de receitas colaborativo feito com React, TypeScript, Vite e Mantine UI.
+Um app de receitas colaborativo, realizado para a disciplina de banco de dados II, feito com React, TypeScript, Vite e Mantine UI. 
 
 ## Funcionalidades
 
