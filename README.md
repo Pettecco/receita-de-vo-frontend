@@ -1,54 +1,46 @@
-# React + TypeScript + Vite
+# Receita de Vó
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Um app de receitas colaborativo feito com React, TypeScript, Vite e Mantine UI.
 
-Currently, two official plugins are available:
+## Funcionalidades
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 📸 **Foto de Perfil:** Usuários podem enviar e atualizar sua foto de perfil via API.
+- 📝 **Adicionar, Visualizar e Excluir Receitas:** Apenas o autor pode excluir sua própria receita.
+- 👀 **Visualizações:** Cada vez que uma receita é visualizada, o contador de visualizações é incrementado e exibido.
+- 💬 **Comentários:** Usuários podem comentar nas receitas, com foto de perfil ao lado de cada comentário.
+- ❤️ **Curtir Receitas:** Curta e descurta receitas.
+- 🔍 **Interface Moderna:** Layout responsivo e agradável usando componentes Mantine.
 
-## Expanding the ESLint configuration
+## Como rodar o projeto
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Instale as dependências:**
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+   ```bash
+   npm install
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. **Configure as variáveis de ambiente:**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+   - Copie o arquivo `.env.example` para `.env` e ajuste as variáveis conforme necessário.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+3. **Certifique-se de que o servidor backend está rodando**
+
+   - O backend é um outro repositório e deve estar em execução para que o app funcione corretamente.
+
+4. **Inicie o servidor de desenvolvimento:**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Build para produção:**
+   ```bash
+   npm run build
+   ```
+
+## Estrutura do Projeto
+
+- `src/components/` — Componentes React (RecipeCard, AddRecipeForm, RecipeDetails, etc)
+- `src/pages/` — Páginas principais (HomePage, etc)
+- `src/services/` — Funções de acesso à API
+- `src/assets/` — Imagens e arquivos estáticos
